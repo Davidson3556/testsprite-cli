@@ -36,6 +36,7 @@ import {
 import { promptText } from '../lib/prompt.js';
 import type { FetchImpl } from '../lib/http.js';
 import { readProfile } from '../lib/credentials.js';
+import { writeStderrLine } from '../lib/terminal-text.js';
 
 /** Mirrors auth.ts's DEFAULT_API_URL (kept in sync; auth.ts owns the canonical value). */
 const DEFAULT_API_URL = 'https://api.testsprite.com';
@@ -367,7 +368,7 @@ async function confirmDetectedTargets(
 // ---------------------------------------------------------------------------
 
 export async function runInit(opts: InitOptions, deps: InitDeps = {}): Promise<void> {
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   const out = new Output(opts.output, { stdout: deps.stdout, stderr: deps.stderr });
 
   // An unknown --agent is refused here, before credentials are written. Left

@@ -14,6 +14,7 @@ import { formatScheduleFrequencyAdvisory, runsPerMonth } from '../lib/cron.js';
 import { renderTextTable, type TextTableColumn } from '../lib/text-table.js';
 import { assertIdempotencyKey } from '../lib/validate.js';
 import { historyRetentionNote, type HistoryRetentionMeta } from '../lib/history-retention.js';
+import { writeStderrLine } from '../lib/terminal-text.js';
 
 /** A schedule as returned by the API. */
 export interface CliSchedule {
@@ -219,7 +220,7 @@ export async function runCreate(
   deps: ScheduleDeps = {},
 ): Promise<CliCreateScheduleResponse> {
   const out = makeOutput(opts.output, deps);
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
 
   assertIdempotencyKey(opts.idempotencyKey);
 
@@ -386,7 +387,7 @@ export async function runUpdate(
   deps: ScheduleDeps = {},
 ): Promise<CliSchedule> {
   const out = makeOutput(opts.output, deps);
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
 
   assertIdempotencyKey(opts.idempotencyKey);
 
@@ -468,7 +469,7 @@ export async function runDelete(
   deps: ScheduleDeps = {},
 ): Promise<CliDeleteScheduleResponse> {
   const out = makeOutput(opts.output, deps);
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
 
   assertIdempotencyKey(opts.idempotencyKey);
 
@@ -524,7 +525,7 @@ export async function runRunList(
   );
   if (opts.output === 'text') {
     const note = historyRetentionNote(response.meta, client.resolvedBaseUrl);
-    if (note) (deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`)))(note);
+    if (note) (deps.stderr ?? writeStderrLine)(note);
   }
   return outputResponse;
 }

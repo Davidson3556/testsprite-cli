@@ -69,6 +69,7 @@ import type {
   CliTestListRunAccepted,
   CliTestListRunResponse,
 } from '../lib/testlist.types.js';
+import { writeStderrLine } from '../lib/terminal-text.js';
 
 export interface TestListDeps {
   shutdown?: ShutdownHandle;
@@ -120,7 +121,7 @@ function emitIdempotencyKey(
   supplied?: string,
 ) {
   if (supplied === undefined && (opts.output === 'json' || opts.verbose || opts.debug)) {
-    const stderr = deps.stderr ?? (line => process.stderr.write(`${line}\n`));
+    const stderr = deps.stderr ?? writeStderrLine;
     stderr(`idempotency-key: ${key}`);
   }
 }
@@ -145,7 +146,7 @@ function parseProjectEnvs(pairs: string[] | undefined): CliProjectEnvironment[] 
 const collectRepeatable = (value: string, acc: string[]): string[] => [...acc, value];
 
 function dryRunStderr(deps: TestListDeps): (line: string) => void {
-  return deps.stderr ?? (line => process.stderr.write(`${line}\n`));
+  return deps.stderr ?? writeStderrLine;
 }
 
 // Canned `--dry-run` samples (offline, no network) — the global `--dry-run`
@@ -539,7 +540,7 @@ export async function runTestlistRun(
     validateTestlistRunOptions(opts);
     throw err;
   }
-  const stderr = deps.stderr ?? (line => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
   let list: CliTestListDetail;
   try {
     list = await readEnvironmentPreflight<CliTestListDetail>(
@@ -614,7 +615,7 @@ async function runTestlistRunCore(
 ): Promise<CliTestListRunResponse> {
   validateTestlistRunOptions(opts);
   const out = makeOutput(opts.output, deps);
-  const stderrFn = deps.stderr ?? (line => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
 
   const idempotencyKey = opts.idempotencyKey ?? `cli-testlist-run-${randomUUID()}`;
   emitIdempotencyKey(opts, deps, idempotencyKey, opts.idempotencyKey);

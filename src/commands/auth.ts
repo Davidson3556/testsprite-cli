@@ -29,6 +29,7 @@ import { ME_RESPONSE_SCHEMA } from '../lib/response-schemas.js';
 import type { CliOrgBinding, CliOrgSummary } from '../lib/org-render.js';
 import { formatOrgBinding, formatOrgsSummary, formatPersonalScopeHint } from '../lib/org-render.js';
 import { emitV3RoutingAdvisory, routingLabel } from '../lib/v3-advisory.js';
+import { writeStderrLine } from '../lib/terminal-text.js';
 
 export interface MeResponse {
   userId: string;
@@ -186,7 +187,7 @@ export async function runConfigure(
   // it defaults to stderr — stdout stays a pure result stream (the configured
   // JSON/text), which matters under `--output json` (§8.1 stdout purity).
   const prelude = deps.preludeWrite ?? ((chunk: string) => process.stderr.write(chunk));
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
 
   // Normalize the env endpoint: an empty / whitespace-only TESTSPRITE_API_URL is
   // treated as unset. Without this, `''` (e.g. `export TESTSPRITE_API_URL=` in a
@@ -347,7 +348,7 @@ export async function runConfigure(
 export async function runWhoami(opts: CommonOptions, deps: AuthDeps = {}): Promise<MeResponse> {
   const out = makeOutput(opts.output, deps);
   const env = deps.env ?? process.env;
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
 
   // Resolve the endpoint URL so it can be surfaced in text output.
   // Dry-run uses the flag/env/default chain without touching credentials.
@@ -439,7 +440,7 @@ export async function runWhoami(opts: CommonOptions, deps: AuthDeps = {}): Promi
 export async function runLogout(opts: CommonOptions, deps: AuthDeps = {}): Promise<void> {
   const credentialsPath = deps.credentialsPath ?? defaultCredentialsPath();
   const out = makeOutput(opts.output, deps);
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
 
   if (opts.dryRun) {
     emitDryRunBanner(stderr);

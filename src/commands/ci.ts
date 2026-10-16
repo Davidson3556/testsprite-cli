@@ -25,6 +25,7 @@ import {
 import { recordTelemetryExtras } from '../lib/telemetry.js';
 import { VERSION } from '../version.js';
 import type { CliProject } from './project.js';
+import { writeStderrLine } from '../lib/terminal-text.js';
 
 // ── constants ────────────────────────────────────────────────────────────────
 
@@ -437,7 +438,7 @@ async function runCiInitScaffold(
   onExisted: (existed: boolean) => void,
 ): Promise<void> {
   const stdout = deps.stdout ?? ((line: string) => process.stdout.write(`${line}\n`));
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
   const fs = deps.fs ?? defaultCiFs;
   const spawn = deps.spawn ?? defaultSpawn;
   const cwd = deps.cwd ?? process.cwd();
@@ -662,7 +663,7 @@ function fetchDeploymentHistory(
  */
 export async function runCiDoctor(opts: CiDoctorOptions, deps: CiDeps = {}): Promise<void> {
   const stdout = deps.stdout ?? ((line: string) => process.stdout.write(`${line}\n`));
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
   const out = new Output(opts.output, { stdout, stderr });
   const cwd = deps.cwd ?? process.cwd();
   const spawn = deps.spawn ?? defaultSpawn;
@@ -907,7 +908,7 @@ function vercelFailureDetail(result: SpawnSyncReturns<string>): string {
  */
 export async function runCiConnect(opts: CiConnectOptions, deps: CiDeps = {}): Promise<void> {
   const stdout = deps.stdout ?? ((line: string) => process.stdout.write(`${line}\n`));
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
   const out = new Output(opts.output, { stdout, stderr });
   const cwd = deps.cwd ?? process.cwd();
   const spawn = deps.spawn ?? defaultSpawn;

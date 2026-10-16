@@ -48,6 +48,7 @@ import type {
   TunnelStatusResponse,
 } from '../lib/tunnel.types.js';
 import { TunnelClient, type TunnelClientOptions } from '../vendor/tunnel-client/index.js';
+import { writeStderrLine } from '../lib/terminal-text.js';
 
 export interface TunnelDeps {
   env?: NodeJS.ProcessEnv;
@@ -107,7 +108,7 @@ function stdoutOf(deps: TunnelDeps): (line: string) => void {
 }
 
 function stderrOf(deps: TunnelDeps): (line: string) => void {
-  return deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  return deps.stderr ?? writeStderrLine;
 }
 
 function makeClient(

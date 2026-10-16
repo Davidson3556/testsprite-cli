@@ -23,6 +23,7 @@ import {
   type LoopbackHost,
   type StoredLocalTarget,
 } from './local-target.js';
+import { writeStderrLine } from './terminal-text.js';
 
 export interface RunTargetTest {
   type: 'frontend' | 'backend';
@@ -304,7 +305,7 @@ export async function withEnvironmentTunnel<T>(
   command: string,
   operation: (context: EnvironmentTunnelContext) => Promise<T>,
 ): Promise<T> {
-  const stderr = deps.stderr ?? (line => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
   const shutdown = deps.shutdown ?? globalShutdown;
   const seen = new Set<string>();
   for (const target of targets) {
@@ -602,7 +603,7 @@ export async function emitEnvironmentDispatchPartial(
     notRunTestIds,
     ...(responses.some(response => response.notFound) ? { notFound } : {}),
   };
-  const stderr = deps.stderr ?? (line => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
   new Output(opts.output, { stdout: deps.stdout, stderr: deps.stderr }).print(partial, () =>
     accepted.map(row => `${row.runId}  ${row.status}`).join('\n'),
   );

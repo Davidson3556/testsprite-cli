@@ -199,6 +199,18 @@ describe('Output.print — success data prints verbatim, never redacted', () => 
     expect(JSON.parse(written)).toEqual(payload);
   });
 
+  it('text output strips terminal control sequences the renderer interpolated', () => {
+    const name = 'Checkout\x1b]52;c;ZWNobyBvd25lZA==\x07 flow\x1b[2K\r\x1b[32mpassed\x1b[0m';
+    new Output('text').print({ name }, data => `NAME  ${(data as { name: string }).name}`);
+    expect(logSpy.mock.calls[0]?.[0]).toBe('NAME  Checkout flowpassed');
+  });
+
+  it('json output keeps control characters in the data byte-for-byte', () => {
+    const payload = { name: 'a\x1b[31mb\x07c\x7fd\x85e' };
+    new Output('json').print(payload);
+    expect(JSON.parse(logSpy.mock.calls[0]?.[0] as string)).toEqual(payload);
+  });
+
   it('username and environment names print unchanged (never touched either way)', () => {
     new Output('json').print({
       username: 'qa+demo@example.com',
@@ -242,6 +254,11 @@ describe('Output.error — recursive secret redaction', () => {
         details: { echoedCredentials: { password: '[REDACTED]', apiKey: '[REDACTED]' } },
       },
     });
+  });
+
+  it('text error strips terminal control sequences from the message', () => {
+    new Output('text').error({ code: 'X', message: 'boom\x1b]0;PWNED\x07 \x1b[31mred\x1b[0m' });
+    expect(errorSpy.mock.calls[0]?.[0]).toBe('Error: boom red');
   });
 });
 

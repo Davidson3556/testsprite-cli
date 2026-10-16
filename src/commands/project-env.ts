@@ -44,6 +44,7 @@ import {
   signInValidationError,
   validateSignInFlags,
 } from './project-sign-in.js';
+import { writeStderrLine } from '../lib/terminal-text.js';
 
 // ---------------------------------------------------------------------------
 // Wire types — `GET|POST /projects/{id}/env`, `GET|PATCH|DELETE /projects/{id}/env/{name}`,
@@ -128,7 +129,7 @@ function makeOutput(mode: OutputMode, deps: ProjectDeps): Output {
 }
 
 function stderrOf(deps: ProjectDeps): (line: string) => void {
-  return deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  return deps.stderr ?? writeStderrLine;
 }
 
 function localValidationError(message: string, field?: string): ApiError {

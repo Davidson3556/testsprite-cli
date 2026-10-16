@@ -25,6 +25,7 @@ import {
   MANAGED_SECTION_BEGIN,
   MANAGED_SECTION_END,
 } from '../lib/agent-targets.js';
+import { writeStderrLine } from '../lib/terminal-text.js';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -399,7 +400,7 @@ function makeOwnFileBodyResolver(): (target: AgentTarget, skill: string) => stri
 
 export async function runInstall(opts: InstallOptions, deps: AgentDeps = {}): Promise<void> {
   const agentFs = deps.fs ?? defaultAgentFs;
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   const out = makeOutput(opts.output, deps);
 
   // 1. Parse targets
@@ -865,7 +866,7 @@ function agentDisplayName(target: AgentTarget, status: string): string {
 
 export async function runList(opts: CommonOptions, deps: AgentDeps = {}): Promise<void> {
   const out = makeOutput(opts.output, deps);
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
 
   // One row per (target × default skill). Own-file targets land each skill at a
   // distinct path; the codex managed-section target merges all skills into the

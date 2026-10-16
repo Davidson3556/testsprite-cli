@@ -13,6 +13,7 @@ import { readSecretFileGuarded } from '../lib/secret-file.js';
 import { assertIdempotencyKey } from '../lib/validate.js';
 import type { CliProjectEnvironment } from './project-env.js';
 import type { ProjectDeps } from './project.js';
+import { writeStderrLine } from '../lib/terminal-text.js';
 
 export interface CliProjectSignInResponse {
   projectId: string;
@@ -146,7 +147,7 @@ function commonOptions(command: Command, env?: NodeJS.ProcessEnv): CommonOptions
 }
 
 function stderrOf(deps: ProjectDeps): (line: string) => void {
-  return deps.stderr ?? (line => process.stderr.write(`${line}\n`));
+  return deps.stderr ?? writeStderrLine;
 }
 
 function pathFor(projectId: string): string {

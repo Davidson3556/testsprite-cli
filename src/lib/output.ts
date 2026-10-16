@@ -1,5 +1,6 @@
 import { localValidationError } from './errors.js';
 import { redactDeep } from './redact.js';
+import { sanitizeTerminalText } from './terminal-text.js';
 
 export type OutputMode = 'json' | 'text';
 
@@ -119,7 +120,10 @@ export class Output {
       this.stdoutWrite(JSON.stringify(data, null, 2));
       return;
     }
-    this.stdoutWrite(textRenderer(data));
+    // Text mode is read in a terminal, and renderers interpolate server
+    // strings (test names, messages) — strip control sequences so one cannot
+    // drive the terminal. JSON above is left byte-identical.
+    this.stdoutWrite(sanitizeTerminalText(textRenderer(data)));
   }
 
   /**
@@ -161,7 +165,7 @@ export class Output {
       this.stderrWrite(JSON.stringify(envelope, null, 2));
       return;
     }
-    this.stderrWrite(`Error: ${input.message}`);
+    this.stderrWrite(sanitizeTerminalText(`Error: ${input.message}`));
   }
 }
 

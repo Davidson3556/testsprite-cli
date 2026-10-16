@@ -35,6 +35,7 @@ import {
   installSignalHandlers,
 } from './lib/interrupt.js';
 import { Output, isOutputMode } from './lib/output.js';
+import { writeStderrLine } from './lib/terminal-text.js';
 import { maybeInstallProxyAgent } from './lib/proxy.js';
 import { redactDeep } from './lib/redact.js';
 import {
@@ -435,22 +436,22 @@ try {
       };
       process.stderr.write(`${JSON.stringify(envelope, null, 2)}\n`);
     } else {
-      process.stderr.write(`Error: ${message}\n`);
-      if (err.nextAction) process.stderr.write(`${err.nextAction}\n`);
+      writeStderrLine(`Error: ${message}`);
+      if (err.nextAction) writeStderrLine(err.nextAction);
       if (billingRefusal) {
-        for (const line of billingRefusal.lines) process.stderr.write(`${line}\n`);
+        for (const line of billingRefusal.lines) writeStderrLine(line);
       }
       if (err.requestId && err.requestId !== 'local')
-        process.stderr.write(`requestId: ${err.requestId}\n`);
+        writeStderrLine(`requestId: ${err.requestId}`);
       // C1: surface requiredScopes / grantedScopes on AUTH_FORBIDDEN
       if (err.code === 'AUTH_FORBIDDEN') {
         const required = err.getDetail('requiredScopes');
         const granted = err.getDetail('grantedScopes');
         if (Array.isArray(required) && required.length > 0) {
-          process.stderr.write(`  required: ${(required as string[]).join(', ')}\n`);
+          writeStderrLine(`  required: ${(required as string[]).join(', ')}`);
         }
         if (Array.isArray(granted)) {
-          process.stderr.write(`  granted:  ${(granted as string[]).join(', ')}\n`);
+          writeStderrLine(`  granted:  ${(granted as string[]).join(', ')}`);
         }
       }
       // Surface the version gap on CLIENT_TOO_OLD so the user sees exactly what
@@ -460,7 +461,7 @@ try {
         const your = err.getDetail('yourVersion');
         const min = err.getDetail('minVersion');
         if (typeof your === 'string' && typeof min === 'string') {
-          process.stderr.write(`  your version: ${your}, minimum supported: ${min}\n`);
+          writeStderrLine(`  your version: ${your}, minimum supported: ${min}`);
         }
       }
       // AMBIGUOUS_ORG: the same testId resolved inside more than one of the
@@ -468,12 +469,12 @@ try {
       // disambiguate, mirroring the AUTH_FORBIDDEN required/granted pattern above.
       if (err.code === 'AMBIGUOUS_ORG') {
         for (const line of renderAmbiguousOrgCandidates(err.getDetail('candidates'))) {
-          process.stderr.write(`${line}\n`);
+          writeStderrLine(line);
         }
       }
       if (err.code === 'RATE_LIMITED' && err.getDetail('reason') === 'tunnel_binding_limit') {
         for (const line of renderTunnelBindingLimitIds(err.getDetail('clientIds'))) {
-          process.stderr.write(`${line}\n`);
+          writeStderrLine(line);
         }
       }
     }
@@ -485,7 +486,7 @@ try {
     if (mode === 'json') {
       process.stderr.write(`${JSON.stringify(buildInterruptEnvelope(err), null, 2)}\n`);
     } else {
-      process.stderr.write(`Error: ${err.message}\n`);
+      writeStderrLine(`Error: ${err.message}`);
     }
     await flushThenSetExitCode(err.exitCode);
     armInterruptExitBackstop(err.exitCode);
@@ -506,7 +507,7 @@ try {
       };
       process.stderr.write(`${JSON.stringify(envelope, null, 2)}\n`);
     } else {
-      process.stderr.write(`Error: ${err.message}\n`);
+      writeStderrLine(`Error: ${err.message}`);
     }
     await flushThenSetExitCode(err.exitCode);
   } else if (err instanceof CommanderError) {

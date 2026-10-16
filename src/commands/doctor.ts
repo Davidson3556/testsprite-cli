@@ -46,6 +46,7 @@ import { isVerifySkillInstalled } from '../lib/skill-nudge.js';
 import { emitV3RoutingAdvisory, routingLabel } from '../lib/v3-advisory.js';
 import { VERSION } from '../version.js';
 import { SUPPORTED_NODE_RANGE, shouldRejectNodeVersion } from '../version-guard.js';
+import { writeStderrLine } from '../lib/terminal-text.js';
 
 export type DoctorStatus = 'ok' | 'warn' | 'fail';
 
@@ -121,7 +122,7 @@ export async function runDoctor(opts: CommonOptions, deps: DoctorDeps = {}): Pro
   }
   const endpointCheck = checkEndpoint(config.apiUrl);
   const hasKey = Boolean(config.apiKey);
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
 
   const connectivity = await checkConnectivity(opts, deps, {
     hasKey,

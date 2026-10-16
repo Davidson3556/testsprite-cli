@@ -35,6 +35,7 @@ import {
 } from '../lib/pagination.js';
 import { createProjectEnvCommand } from './project-env.js';
 import { createProjectSignInCommand } from './project-sign-in.js';
+import { writeStderrLine } from '../lib/terminal-text.js';
 
 export interface CliProject {
   id: string;
@@ -283,7 +284,7 @@ export async function runCreate(
   deps: ProjectDeps = {},
 ): Promise<CliCreateProjectResponse> {
   const out = makeOutput(opts.output, deps);
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
 
   // P1-2: validate idempotency key before sending as an HTTP header.
   // Non-ASCII chars cause a ByteString TypeError at the transport layer
@@ -529,7 +530,7 @@ export async function runUpdate(
   deps: ProjectDeps = {},
 ): Promise<CliUpdateProjectResponse> {
   const out = makeOutput(opts.output, deps);
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
 
   // P1-2: validate idempotency key before sending as an HTTP header.
   assertIdempotencyKey(opts.idempotencyKey);
@@ -728,7 +729,7 @@ export async function runDelete(
 
   const idempotencyKey = opts.idempotencyKey ?? `cli-delete-${randomUUID()}`;
   if (opts.idempotencyKey === undefined && (opts.output === 'json' || opts.verbose || opts.debug)) {
-    const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderr = deps.stderr ?? writeStderrLine;
     stderr(`idempotency-key: ${idempotencyKey}`);
   }
 
@@ -770,7 +771,7 @@ export async function runCredential(
   deps: ProjectDeps = {},
 ): Promise<CliProjectCredentialResponse> {
   const out = makeOutput(opts.output, deps);
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
   assertIdempotencyKey(opts.idempotencyKey);
 
   if (!(CLI_AUTH_TYPES as readonly string[]).includes(opts.authType)) {
@@ -877,7 +878,7 @@ export async function runAutoAuth(
   deps: ProjectDeps = {},
 ): Promise<CliProjectAutoAuthResponse> {
   const out = makeOutput(opts.output, deps);
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
   assertIdempotencyKey(opts.idempotencyKey);
 
   if (!(AUTO_AUTH_METHODS as readonly string[]).includes(opts.method)) {
@@ -1070,7 +1071,7 @@ export async function runDocsUpload(
   deps: ProjectDeps = {},
 ): Promise<CliDocsUploadResult | CliDocsUploadPlan> {
   const out = makeOutput(opts.output, deps);
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
 
   assertIdempotencyKey(opts.idempotencyKey);
 

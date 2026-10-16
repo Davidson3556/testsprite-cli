@@ -26,6 +26,7 @@ import type { CliOrgBinding, CliOrgSummary } from '../lib/org-render.js';
 import { formatOrgBinding, formatOrgsSummary } from '../lib/org-render.js';
 import { GLOBAL_OPTS_HINT, Output, resolveOutputMode, type OutputMode } from '../lib/output.js';
 import { USAGE_RESPONSE_SCHEMA } from '../lib/response-schemas.js';
+import { writeStderrLine } from '../lib/terminal-text.js';
 
 /**
  * Usage/balance response from `/me` (when the backend supplies it) or a future
@@ -135,7 +136,7 @@ export const DRY_RUN_USAGE_SAMPLE: UsageResponse = {
  * populate them).
  */
 export async function runUsage(opts: CommonOptions, deps: UsageDeps = {}): Promise<UsageResponse> {
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
   const out = makeOutput(opts.output, deps);
 
   if (opts.dryRun) {

@@ -192,6 +192,7 @@ import {
   type FlakyOutcome,
   type FlakyReport,
 } from '../lib/flaky.js';
+import { writeStderrLine } from '../lib/terminal-text.js';
 
 /**
  * `details` debug block per the CLI OpenAPI `Test` schema
@@ -1103,7 +1104,7 @@ export async function runList(opts: ListOptions, deps: TestDeps = {}): Promise<P
   }
 
   if (environment !== undefined) {
-    const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderr = deps.stderr ?? writeStderrLine;
     if (opts.output === 'text' && opts.noHeader) {
       stderr(`Frontend test status requested for environment '${environment}'.`);
     }
@@ -1334,7 +1335,7 @@ async function resolveCreationTargets(
       targetUrl: opts.targetUrl,
       noWait: opts.noWait,
       cache,
-      stderr: deps.stderr ?? (line => process.stderr.write(`${line}\n`)),
+      stderr: deps.stderr ?? writeStderrLine,
     });
     if (target) targets.set(test.projectId, target);
   }
@@ -1497,7 +1498,7 @@ export async function runCreate(
   // if the original POST reached the server before the retry budget
   // ran out. Stderr (not stdout) keeps json-mode output clean.
   if (opts.idempotencyKey === undefined && (opts.output === 'json' || opts.verbose || opts.debug)) {
-    const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderr = deps.stderr ?? writeStderrLine;
     stderr(`idempotency-key: ${idempotencyKey}`);
   }
 
@@ -1541,7 +1542,7 @@ export async function runCreate(
   // time; a bare `test create --type backend --target-url` without --run does
   // not execute the test, so the advisory would be confusing noise.
   if (opts.type === 'backend' && opts.targetUrl !== undefined && opts.run === true) {
-    const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderrFn = deps.stderr ?? writeStderrLine;
     stderrFn(
       "[advisory] --target-url has no effect for backend tests (a backend test's base URL is defined inside its code).",
     );
@@ -1564,7 +1565,7 @@ export async function runCreate(
     opts.run === true &&
     !opts.dryRun
   ) {
-    const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderrFn = deps.stderr ?? writeStderrLine;
     await assertTargetUrlReachable(
       opts.targetUrl,
       { skipPreflight: opts.skipPreflight },
@@ -1601,7 +1602,7 @@ export async function runCreate(
 
   // B3: best-effort duplicate-name advisory. Skip under --dry-run.
   if (!opts.dryRun) {
-    const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderrFn = deps.stderr ?? writeStderrLine;
     await emitDupNameAdvisoryIfNeeded(client, projectId, opts.name, stderrFn);
   }
 
@@ -1639,8 +1640,7 @@ export async function runCreate(
           ? undefined
           : resolvePortalUrl(resolveApiUrl(opts, deps), projectId, response.testId),
     );
-    const runDashboardStderrFn =
-      deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const runDashboardStderrFn = deps.stderr ?? writeStderrLine;
     if (dashboardSuppressedOnRun) {
       emitDashboardLinkSuppressedAdvisory(response.testId, runDashboardStderrFn);
     } else if (opts.output !== 'json' && createContextWithUrl.dashboardUrl !== undefined) {
@@ -1709,15 +1709,12 @@ export async function runCreate(
   } else {
     out.print(response, data => renderCreateText(data as CliCreateTestResponse));
     if (dashboardUrl !== undefined) {
-      const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+      const stderrFn = deps.stderr ?? writeStderrLine;
       stderrFn(`Dashboard: ${dashboardUrl}`);
     }
   }
   if (dashboardSuppressed) {
-    emitDashboardLinkSuppressedAdvisory(
-      response.testId,
-      deps.stderr ?? (line => process.stderr.write(`${line}\n`)),
-    );
+    emitDashboardLinkSuppressedAdvisory(response.testId, deps.stderr ?? writeStderrLine);
   }
   return response;
 }
@@ -1833,7 +1830,7 @@ function renderCreateText(response: CliCreateTestResponse): string {
  */
 function emitResponseWarnings(warnings: string[] | undefined, deps: TestDeps): void {
   if (!warnings || warnings.length === 0) return;
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   for (const w of warnings) stderrFn(`[warn] ${w}`);
 }
 
@@ -1844,7 +1841,7 @@ function emitResponseWarnings(warnings: string[] | undefined, deps: TestDeps): v
  */
 function emitStepTimeoutRunWarning(stepTimeoutMs: number | undefined, deps: TestDeps): void {
   if (stepTimeoutMs === undefined) return;
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   stderrFn(
     `[warn] Runs of this test may take longer with a ${stepTimeoutMs} ms per-step timeout. ` +
       `\`test run --wait\` polls for up to ${DEFAULT_RUN_TIMEOUT_SECONDS}s by default; ` +
@@ -1933,7 +1930,7 @@ export async function runPlanPut(
 
   const idempotencyKey = opts.idempotencyKey ?? `cli-plan-put-${randomUUID()}`;
   if (opts.idempotencyKey === undefined && (opts.output === 'json' || opts.verbose || opts.debug)) {
-    const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderr = deps.stderr ?? writeStderrLine;
     stderr(`idempotency-key: ${idempotencyKey}`);
   }
 
@@ -1950,7 +1947,7 @@ export async function runPlanPut(
   // a real API key.
   if (opts.dryRun && opts.dryRunSimulateError === 'PRECONDITION_FAILED') {
     const expectedCount = opts.expectedStepCount ?? planSteps.length;
-    const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderr = deps.stderr ?? writeStderrLine;
     stderr(
       `Plan-steps conflict. Server has a different step count than ${expectedCount}. ` +
         `Re-fetch with 'testsprite test get ${opts.testId}' to see the current planSteps[] length and retry with --expected-step-count <current>.`,
@@ -2381,7 +2378,7 @@ export async function runUpdate(
 
   const idempotencyKey = opts.idempotencyKey ?? `cli-update-${randomUUID()}`;
   if (opts.idempotencyKey === undefined && (opts.output === 'json' || opts.verbose || opts.debug)) {
-    const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderr = deps.stderr ?? writeStderrLine;
     stderr(`idempotency-key: ${idempotencyKey}`);
   }
 
@@ -2482,7 +2479,7 @@ export async function runDelete(
 
   const idempotencyKey = opts.idempotencyKey ?? `cli-delete-${randomUUID()}`;
   if (opts.idempotencyKey === undefined && (opts.output === 'json' || opts.verbose || opts.debug)) {
-    const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderr = deps.stderr ?? writeStderrLine;
     stderr(`idempotency-key: ${idempotencyKey}`);
   }
 
@@ -2553,7 +2550,7 @@ export async function runDeleteBatch(
   opts: DeleteBatchOptions,
   deps: TestDeps = {},
 ): Promise<CliBulkDeleteSummary> {
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   const out = makeOutput(opts.output, deps);
 
   if (!opts.confirm && !opts.dryRun) {
@@ -3398,7 +3395,7 @@ export async function runCreateFromPlan(
 
   const plan = readPlanFromGuarded(opts.planFrom, { ignoredFlags: opts.ignoredFlags });
 
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
 
   // Non-fatal advisory for `{{...}}`-style placeholders in step
   // descriptions. The CLI does no variable substitution — the browser agent
@@ -3933,7 +3930,7 @@ export async function runCreateBatch(
     });
   }
 
-  const stderrFnEarly = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFnEarly = deps.stderr ?? writeStderrLine;
   const specs =
     opts.planFromDir !== undefined && opts.planFromDir !== ''
       ? readPlansFromDirGuarded(opts.planFromDir, stderrFnEarly)
@@ -3948,7 +3945,7 @@ export async function runCreateBatch(
   // e.g. prefix each name per agent. Non-blocking: batch proceeds normally.
   const dupBodyCount = countDuplicatePlanBodies(specs);
   if (dupBodyCount > 0) {
-    const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderrFn = deps.stderr ?? writeStderrLine;
     stderrFn(
       `[advisory] ${dupBodyCount} spec(s) share an identical plan body + description. If you are scoring multiple targets, keep tests distinct (e.g. prefix each name per agent) — reusing one testId serializes runs and overwrites video history per testId.`,
     );
@@ -3960,7 +3957,7 @@ export async function runCreateBatch(
   // CI-friendly per piece-3's convention.
   const beIndexes = specs.map((s, i) => (s.type === 'backend' ? i : -1)).filter(i => i !== -1);
   if (beIndexes.length > 0) {
-    const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderrFn = deps.stderr ?? writeStderrLine;
     stderrFn(
       `warning: ${beIndexes.length} of ${specs.length} specs have type="backend" (indexes: ${beIndexes.join(', ')}) — server will return per-spec validation_error for these. FE specs will still process. Use 'test create --type backend --code-file' for BE tests.`,
     );
@@ -3968,7 +3965,7 @@ export async function runCreateBatch(
 
   const idempotencyKey = opts.idempotencyKey ?? `cli-create-batch-${randomUUID()}`;
   if (opts.idempotencyKey === undefined && (opts.output === 'json' || opts.verbose || opts.debug)) {
-    const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderrFn = deps.stderr ?? writeStderrLine;
     stderrFn(`idempotency-key: ${idempotencyKey}`);
   }
 
@@ -4122,7 +4119,7 @@ export async function runCreateBatch(
     }
   }
   if (anyDashboardSuppressed) {
-    const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderrFn = deps.stderr ?? writeStderrLine;
     stderrFn(
       '[advisory] no dashboard link is available for one or more created tests right now; ' +
         'use `testsprite test get <test-id>` to look them up.',
@@ -4224,7 +4221,7 @@ async function runBatchRun(
    */
   testIdToDashboardState?: Map<string, { dashboardUrl: string | undefined; suppressed: boolean }>,
 ): Promise<void> {
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   const timeoutSeconds = opts.timeoutSeconds ?? DEFAULT_RUN_TIMEOUT_SECONDS;
   const concurrencyLimit = opts.maxConcurrency ?? DEFAULT_BATCH_RUN_CONCURRENCY;
 
@@ -5304,7 +5301,7 @@ export async function runCodeGet(opts: CodeGetOptions, deps: TestDeps = {}): Pro
   // a missing-parent path is a real-mode failure mode; in dry-run the
   // point is "show me the shape, no side effects."
   if (opts.dryRun) {
-    const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderr = deps.stderr ?? writeStderrLine;
     const out = makeOutput(opts.output, deps);
     const client = makeClient(opts, deps);
     const code = await client.get<CliTestCode>(`/tests/${encodeURIComponent(opts.testId)}/code`);
@@ -5359,7 +5356,7 @@ export async function runCodeGet(opts: CodeGetOptions, deps: TestDeps = {}): Pro
           'test has no generated code yet — run the test first (refusing to write an empty --out file)',
         );
       }
-      const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+      const stderrFn = deps.stderr ?? writeStderrLine;
       stderrFn('(no code generated yet — run the test first)');
     } else {
       await out.writeChunk(code.code);
@@ -5488,7 +5485,7 @@ export async function runCodePut(
 
   const idempotencyKey = opts.idempotencyKey ?? `cli-code-put-${randomUUID()}`;
   if (opts.idempotencyKey === undefined && (opts.output === 'json' || opts.verbose || opts.debug)) {
-    const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderr = deps.stderr ?? writeStderrLine;
     stderr(`idempotency-key: ${idempotencyKey}`);
   }
 
@@ -5515,13 +5512,13 @@ export async function runCodePut(
       // force: true — visible signal that our auto-fetch hit a
       // legacy row, not a concurrent-write race.
       ifMatch = '*';
-      const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+      const stderr = deps.stderr ?? writeStderrLine;
       stderr(
         `auto-fetched codeVersion=null on legacy row; using If-Match: * for this put. Pass --expected-version explicitly to avoid this fallback.`,
       );
     } else {
       ifMatch = cv;
-      const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+      const stderr = deps.stderr ?? writeStderrLine;
       if (opts.dryRun) {
         stderr(
           `[dry-run] would auto-fetch codeVersion before PUT; pass --expected-version to avoid races (sample: ${cv})`,
@@ -5581,7 +5578,7 @@ export async function runCodePut(
         err.getDetail<string>('currentCodeVersion', (v): v is string => typeof v === 'string') ??
         null;
       const sentVersion = ifMatch === '*' ? '*' : ifMatch;
-      const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+      const stderr = deps.stderr ?? writeStderrLine;
       if (serverVersion !== null) {
         stderr(
           `Code conflict. Server is at ${serverVersion}, you sent ${sentVersion}. ` +
@@ -5745,7 +5742,7 @@ function enforceDiffExitContract(diff: CliRunDiff): void {
  */
 export async function runDiff(opts: DiffOptions, deps: TestDeps = {}): Promise<CliRunDiff> {
   const out = makeOutput(opts.output, deps);
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
 
   if (opts.dryRun) {
     emitDryRunBanner(stderrFn);
@@ -6091,7 +6088,7 @@ export async function runScaffold(
   deps: TestDeps = {},
 ): Promise<CliPlanInput | CliBackendScaffold> {
   const out = makeOutput(opts.output, deps);
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   const env = deps.env ?? process.env;
   // Pre-fill the project id from TESTSPRITE_PROJECT_ID when the caller's
   // environment carries one; otherwise a clearly-marked placeholder the user
@@ -6204,7 +6201,7 @@ export async function runOpen(
   opener: (url: string) => void = openInBrowser,
 ): Promise<{ dashboardUrl: string }> {
   const out = makeOutput(opts.output, deps);
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
 
   if (opts.dryRun) {
     emitDryRunBanner(stderrFn);
@@ -6250,7 +6247,7 @@ export async function runSteps(
 ): Promise<Page<CliTestStep>> {
   const out = makeOutput(opts.output, deps);
   const client = makeClient(opts, deps);
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
 
   // When --run-id is supplied, use the authoritative run-scoped endpoint
   // `GET /runs/{runId}?includeSteps=true` instead of client-filtering the
@@ -6395,7 +6392,7 @@ export async function runResult(
 ): Promise<CliLatestResult> {
   const out = makeOutput(opts.output, deps);
   const client = makeClient(opts, deps);
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
 
   const path = `/tests/${encodeURIComponent(opts.testId)}/result`;
   const result = await client.get<CliLatestResult>(
@@ -6589,7 +6586,7 @@ export async function runResultHistory(
   }
 
   // Text mode rendering
-  const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
   const retentionNote = historyRetentionNote(resp.meta, client.resolvedBaseUrl);
   const printRetentionNote = () => {
     if (retentionNote) stderr(retentionNote);
@@ -6877,7 +6874,7 @@ export async function runFailureGet(
     // to stderr and emit the wire envelope to stdout so the agent sees
     // the shape it would parse from disk.
     if (opts.dryRun) {
-      const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+      const stderr = deps.stderr ?? writeStderrLine;
       const fileNames = plannedBundleFiles(context, opts.failedOnly);
       stderr(
         `[dry-run] would write bundle to ${resolvedDir} (${fileNames.length} files; meta.json renames last)`,
@@ -7760,7 +7757,7 @@ export async function runTestRun(
         knownTest: opts.knownTest,
         environment,
         dryRun: true,
-        stderr: deps.stderr ?? (line => process.stderr.write(`${line}\n`)),
+        stderr: deps.stderr ?? writeStderrLine,
       });
       if (target) {
         isTunnelRun = true;
@@ -7826,7 +7823,7 @@ export async function runTestRun(
 
   const idempotencyKey = opts.idempotencyKey ?? `cli-run-${randomUUID()}`;
   if (opts.idempotencyKey === undefined && (opts.output === 'json' || opts.verbose || opts.debug)) {
-    const stderr = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderr = deps.stderr ?? writeStderrLine;
     stderr(`idempotency-key: ${idempotencyKey}`);
   }
 
@@ -7855,7 +7852,7 @@ export async function runTestRun(
       tunnelClientId: opts.tunnelClientId,
       noWait: opts.noWait,
       verbose: opts.verbose || opts.debug,
-      stderr: deps.stderr ?? (line => process.stderr.write(`${line}\n`)),
+      stderr: deps.stderr ?? writeStderrLine,
       cache: deps.environmentCache,
     }));
   isTunnelRun = resolvedTarget !== undefined;
@@ -7879,7 +7876,7 @@ export async function runTestRun(
     ? resolveRequestTimeoutMs(clientOpts, deps.env ?? process.env)
     : undefined;
   const out = makeOutput(opts.output, deps);
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   const shutdown = shutdownOf(deps);
 
   // `--env` is feature-gated per workspace. Refuse here — one read-only `/me`,
@@ -8048,7 +8045,7 @@ export async function runTestRun(
         // Only the genuine "another run currently executing" race qualifies for
         // auto-resume. Other CONFLICT reasons (snapshot_in_flight, etc.) exit 6.
         if (conflictReason === 'run_in_flight' && currentRunId !== undefined) {
-          const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+          const stderrFn = deps.stderr ?? writeStderrLine;
           // Set only when a verified environment names a concrete retry — the
           // no-environment-recorded attach path has nothing to name.
           let retryFlags: string | undefined;
@@ -8677,7 +8674,7 @@ export async function runTestWaitMany(
   deps: TestDeps = {},
 ): Promise<{ results: CliMultiWaitResult[]; summary: Record<string, number> }> {
   const out = makeOutput(opts.output, deps);
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
 
   if (opts.dryRun) {
     emitDryRunBanner(stderrFn);
@@ -9014,7 +9011,7 @@ export async function runTestCancel(
   opts: RunTestCancelOptions,
   deps: TestDeps = {},
 ): Promise<CancelRunResponse | CliCancelSummary> {
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   const out = makeOutput(opts.output, deps);
   const client = makeClient(opts, deps);
 
@@ -9183,7 +9180,7 @@ export async function runTestWait(
   deps: TestDeps = {},
 ): Promise<RunResponse> {
   if (opts.dryRun) {
-    const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const stderrFn = deps.stderr ?? writeStderrLine;
     emitDryRunBanner(stderrFn);
     const out = makeOutput(opts.output, deps);
     const envelope = {
@@ -9204,7 +9201,7 @@ export async function runTestWait(
     deps,
   );
   const out = makeOutput(opts.output, deps);
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
 
   const startMs = Date.now();
   const ticker = createTicker(stderrFn, opts.output === 'json' ? false : undefined);
@@ -9691,7 +9688,7 @@ export async function runTestRunAll(
     batchPath: true,
   });
 
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   const out = makeOutput(opts.output, deps);
 
   if (opts.dryRun && opts.targetUrl === undefined && !opts.noWait) {
@@ -10837,7 +10834,7 @@ export async function runTestRunLocalBatch(
       'with --local, --max-concurrency must be between 1 and 10 (every run shares this machine and its one tunnel; the default is 5)',
     );
   }
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   const out = makeOutput(opts.output, deps);
   let targetUrl =
     opts.resolvedTarget?.targetUrl ??
@@ -11765,7 +11762,7 @@ export async function runTestRerun(
     validateRerunOptions(opts);
     throw err;
   }
-  const stderr = deps.stderr ?? (line => process.stderr.write(`${line}\n`));
+  const stderr = deps.stderr ?? writeStderrLine;
   const targets = new Map<string, ResolvedRunTarget>();
   const backend: string[] = [];
   const cache = new Map();
@@ -11838,7 +11835,7 @@ async function runTestRerunCore(
 ): Promise<RerunResponse | BatchRerunResponse | undefined> {
   assertIdempotencyKey(opts.idempotencyKey);
   const environment = normalizeEnvironmentName(opts.environment);
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   const out = makeOutput(opts.output, deps);
 
   const isSingle = validateRerunOptions(
@@ -13761,7 +13758,7 @@ export async function runArtifactGet(
         ),
     );
     if (opts.verbose || opts.debug) {
-      const stderrWriter = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+      const stderrWriter = deps.stderr ?? writeStderrLine;
       stderrWriter(`requestId: ${fetchRequestId}`);
     }
   }
@@ -14580,7 +14577,7 @@ export function createTestCommand(deps: TestDeps = {}): Command {
         );
       }
       const isAll = cmdOpts.all === true;
-      const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+      const stderrFn = deps.stderr ?? writeStderrLine;
 
       // Mutual-exclusion: exactly one of positional <test-id> vs --all must be set.
       if (testIdArgs.length > 0 && isAll) {
@@ -14776,7 +14773,7 @@ export function createTestCommand(deps: TestDeps = {}): Command {
       const commonOpts = resolveCommonOptions(command, deps.env);
       if (usingLocal && cmdOpts.wait !== true && commonOpts.output !== 'json') {
         const adopted = cmdOpts.tunnelClient !== undefined;
-        (deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`)))(
+        (deps.stderr ?? writeStderrLine)(
           adopted
             ? '[advisory] --local implies --wait: the run is followed to a verdict rather than ' +
                 'detached. The tunnel you attached to stays open — this command does not close it.'
@@ -15217,7 +15214,7 @@ export async function runFlaky(
   opts: RunTestFlakyOptions,
   deps: TestDeps = {},
 ): Promise<FlakyReport | undefined> {
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   const out = makeOutput(opts.output, deps);
 
   if (typeof opts.testId !== 'string' || opts.testId.length === 0) {
@@ -17221,7 +17218,7 @@ export async function runPlanGenerate(
   opts: PlanGenerateOptions,
   deps: TestDeps = {},
 ): Promise<unknown> {
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   const out = makeOutput(opts.output, deps);
   const projectId = requirePlanProjectId(opts.projectId, deps);
   assertIdempotencyKey(opts.idempotencyKey);
@@ -17594,7 +17591,7 @@ export async function runPlanAccept(
   opts: PlanAcceptOptions,
   deps: TestDeps = {},
 ): Promise<PlanAcceptResult | undefined> {
-  const stderrFn = deps.stderr ?? ((line: string) => process.stderr.write(`${line}\n`));
+  const stderrFn = deps.stderr ?? writeStderrLine;
   const out = makeOutput(opts.output, deps);
   const projectId = requirePlanProjectId(opts.projectId, deps);
   assertIdempotencyKey(opts.idempotencyKey);
