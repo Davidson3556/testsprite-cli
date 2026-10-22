@@ -546,6 +546,7 @@ describe('tryResolveTelemetryAuth', () => {
   function unreadableCredsPath(): string {
     const dir = mkdtempSync(join(tmpdir(), 'ts-telemetry-unreadable-'));
     const path = join(dir, 'credentials');
+    // eslint-disable-next-line security/detect-non-literal-fs-filename -- test fixture path built from this test's own mkdtempSync() dir, never user input
     mkdirSync(path);
     return path;
   }

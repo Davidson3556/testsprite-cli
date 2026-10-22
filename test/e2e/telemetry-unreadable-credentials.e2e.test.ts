@@ -138,10 +138,13 @@ describe.skipIf(!canDenyRead)('telemetry pre-action hook — unreadable credenti
   it('doctor runs and reports the Credentials problem itself; no beacon', async () => {
     const result = await runCli(['doctor']);
     const output = result.stdout + result.stderr;
+    // TESTSPRITE_API_KEY is set and /me answers, so the unreadable file is a
+    // WARN (commands still work) and doctor completes with exit 0.
+    expect(result.status).toBe(0);
     expect(output).not.toMatch(/Error: (EACCES|EPERM)/);
     expect(output).toContain('TestSprite doctor');
     expect(output).toMatch(
-      /Credentials\s+credentials file exists but cannot be read \((EACCES|EPERM)\)/,
+      /\[WARN\]\s+Credentials\s+credentials file exists but cannot be read \((EACCES|EPERM)\)/,
     );
     expect(telemetryPosts()).toEqual([]);
   });
